@@ -9,6 +9,9 @@ import { extractTextFromFile, getDocumentMetadata } from "./documentExtractor.js
 import { lightRAGSearch } from "./lightrag.js";
 import { generateStreamingMarkdownResponse, setupStreamingResponse } from "./streaming.js";
 import multer from "multer";
+app.use(cors({
+  origin: "https://fantastic-orbit-...5173.app.github.dev"
+}));
 
 dotenv.config();
 const sessionStates = new Map(); // Para mantener estado específico de cada sesión (documentos activos, últimos textos, etc.)
