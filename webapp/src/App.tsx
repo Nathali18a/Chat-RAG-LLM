@@ -6,6 +6,7 @@ import { SettingsBar } from "./components/SettingsBar";
 import { ChatMessages } from "./components/ChatMessages";
 import { ChatInput } from "./components/ChatInput";
 import { useEffect } from "react";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function App() {
   const [question, setQuestion] = useState("");
@@ -20,12 +21,12 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:3000/sessions")
+    fetch(`${API_URL}/sessions`)
       .then(r => r.json())
       .then(setSessions);
   }, []);
   async function loadSession(id: string) {
-    const res = await fetch(`http://localhost:3000/sessions/${id}`);
+    const res = await fetch(`${API_URL}/sessions/${id}`);
     const data = await res.json();
 
     setMessages(data.messages);
@@ -77,7 +78,7 @@ function App() {
         fd.append("k", "4");
         fd.append("sessionId", sessionId);
 
-        response = await fetch("http://localhost:3000/query-multimodal", {
+        response = await fetch(`${API_URL}/query-multimodal`, {
           method: "POST",
           body: fd,
         });
@@ -107,7 +108,7 @@ function App() {
       // =============================
       const body = { question, useLightRAG, k: 4, sessionId };
 
-      response = await fetch("http://localhost:3000/query/stream", {
+      response = await fetch(`${API_URL}/query/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -192,7 +193,7 @@ function App() {
         fd.append("file", file, file.name);
         fd.append("sessionId", sessionId);
 
-        const resp = await fetch("http://localhost:3000/upload", {
+        const resp = await fetch(`${API_URL}/upload`, {
           method: "POST",
           body: fd,
         });
