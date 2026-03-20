@@ -10,6 +10,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 function App() {
   const [question, setQuestion] = useState("");
+  console.log("API_URL:", API_URL);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
