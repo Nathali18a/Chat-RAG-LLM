@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Documentación - CHATBOT (RAG)</title>
+  <style>
+    body{font-family: Arial, sans-serif; line-height:1.4; padding:20px}
+    h1,h2{color:#2c3e50}
+    pre{background:#f6f8fa;padding:8px;border-radius:4px;overflow:auto}
+    .file{margin-bottom:18px}
+    ul{margin-top:4px}
+  </style>
+</head>
+<body>
+  <h1>Documentación del proyecto CHATBOT (RAG)</h1>
+  <p>Resumen: Proyecto RAG (Retrieval-Augmented Generation) con backend en Node.js (Express) y frontend en React + Vite. Este documento describe cada archivo principal y sus funciones para presentar trabajo.</p>
+
+  <h2>Índice</h2>
+  <ul>
+    <li>README del proyecto</li>
+    <li>Carpeta <strong>api/</strong> (backend)</li>
+    <li>Carpeta <strong>webapp/</strong> (frontend)</li>
+  </ul>
+
+  <div class="file">
+    <h2>README.md (raíz)</h2>
+    <p>Descripción general del proyecto y pasos rápidos para levantar backend y frontend. Incluye instrucciones de ingestión y ejemplos de curl para <code>/ingest</code> y <code>/query</code>. También explica modo de pruebas (mock embeddings y respuestas simuladas).</p>
+  </div>
+
+  <div class="file">
+    <h2>api/README.md</h2>
+    <p>Instrucciones y notas del backend. Describe variables de entorno requeridas (<code>OPENAI_API_KEY</code>, <code>DEEPSEEK_API_URL</code>, <code>DEEPSEEK_API_KEY</code>), comandos <code>npm install</code> y <code>npm run dev</code>, y endpoints principales.</p>
+  </div>
+
+  <div class="file">
+    <h2>api/src/index.js</h2>
+    <p>Servidor Express principal. Funciones y endpoints:</p>
+    <ul>
+      <li><strong>GET /health</strong>: Comprobación de estado (retorna {"status":"ok"}).</li>
+      <li><strong>POST /ingest</strong>: Recibe <code>{ documents: [...] }</code>, calcula embeddings (usando <code>embed</code>) y guarda en collection Chroma (o in-memory). Soporta distintas APIs de cliente Chroma (<code>add</code>, <code>upsert</code>, <code>insert</code>).</li>
+      <li><strong>POST /query</strong>: Recibe <code>{ question, k }</code>, obtiene embedding de la pregunta, consulta la colección y construye un <em>context</em> con los documentos recuperados. Llama a <code>generateAnswer</code> (DeepSeek) para obtener la respuesta y formatea resultado para salida JSON con <code>{ answer, context, docs }</code>.</li>
+      <li><strong>GET /debug/docs</strong>: Devuelve el contenido de la colección para depuración (soporta distintos métodos del cliente Chroma o la colección en memoria).</li>
+      <li><strong>POST /upload</strong>: Endpoint de subida de archivos (PDF/MD/TXT). Extrae texto (usa <code>pdf-parse</code> para PDF), genera embedding y lo inserta en la colección.</li>
+    </ul>
+    <p>Otras notas: manejo de errores y normalización de formatos de respuesta desde Chroma.</p>
+  </div>
+
+  <div class="file">
+    <h2>api/src/openaiClient.js</h2>
+    <p>Responsable de los embeddings. Exporta:</p>
+    <ul>
+      <li><code>embed(text)</code>: Devuelve un vector de embedding.</li>
+      <li>Modo <em>mock</em> si <code>OPENAI_API_KEY</code> está vacío o empieza por <code>mock</code>, genera embeddings sintéticos (función hash + sinusoidal).</li>
+      <li>Soporta <code>OpenAIEmbeddings</code> de LangChain o la API directa de OpenAI (modelo <code>text-embedding-3-small</code>).</li>
+    </ul>
+  </div>
+
+  <div class="file">
+    <h2>api/src/deepseek.js</h2>
+    <p>Módulo que encapsula la llamada al servicio DeepSeek para generar la respuesta basada en contexto. Exporta:</p>
+    <ul>
+      <li><code>generateAnswer(context, question)</code>: Si no hay <code>DEEPSEEK_API_KEY</code> devuelve una respuesta simulada informando que la API no está configurada; si está configurada realiza un POST a <code>DEEPSEEK_API_URL</code>/chat/completions con un payload (mensajes, temperatura, max_tokens) y retorna la respuesta.</li>
+      <li>Manejo de errores y logging.</li>
+    </ul>
+  </div>
+
+  <div class="file">
+    <h2>api/src/chromaClient.js</h2>
+    <p>Provee <code>getCollection(name)</code> que intenta cargar <code>chromadb</code> y crear/recuperar colecciones. Si Chroma no está disponible utiliza una implementación local en memoria:</p>
+    <ul>
+      <li><strong>InMemoryCollection</strong>: Métodos <code>add</code>, <code>upsert</code>, y <code>query</code> con búsqueda por similitud de coseno (impl. simple).</li>
+      <li><code>getCollection</code>: Devuelve el cliente Chroma si existe, o la colección en memoria.</li>
+    </ul>
+    <p>Útil para pruebas sin dependencias externas.</p>
+  </div>
+
+  <div class="file">
+    <h2>api/scripts/ingestSample.js</h2>
+    <p>Script para recorrer un directorio local de archivos Markdown y realizar ingestión automática en la colección (mencionado en README para poblar la base con contenido real).</p>
+  </div>
+
+  <div class="file">
+    <h2>webapp/src/App.tsx</h2>
+    <p>Interfaz de chat en React. Componentes/funciones clave:</p>
+    <ul>
+      <li>Estados: <code>question</code>, <code>messages</code>, <code>loading</code>, <code>file</code>, <code>uploading</code>.</li>
+      <li><code>send()</code>: Envía la pregunta al endpoint <code>http://localhost:3000/query</code>, agrega mensaje de usuario y, al recibir respuesta, agrega mensaje de asistente con el texto devuelto.</li>
+      <li><code>uploadFile()</code>: Sube archivo al endpoint <code>/upload</code> como <code>FormData</code>, procesa la respuesta y muestra mensaje informativo.</li>
+      <li><code>handleKeyPress()</code>: Maneja Enter para enviar (sin shift).</li>
+      <li>Renderiza la lista de mensajes, composer con textarea, selector de archivo y botones.</li>
+    </ul>
+  </div>
+
+  <div class="file">
+    <h2>webapp/src/main.tsx</h2>
+    <p>Punto de entrada React: monta <code>&lt;App /&gt;</code> en el elemento con id <code>root</code>. Usa <code>createRoot</code> y <code>StrictMode</code>.</p>
+  </div>
+
+  <div class="file">
+    <h2>Archivos de configuración</h2>
+    <ul>
+      <li><strong>webapp/package.json</strong>: Dependencias y scripts del frontend (Vite).</li>
+      <li><strong>api/package.json</strong>: Dependencias del backend (express, chromadb optional, openai, pdf-parse, multer, etc.) y scripts (dev, start).</li>
+      <li><strong>tsconfig*.json</strong> y <strong>vite.config.ts</strong>: Configuración Typescript/Vite del frontend.</li>
+    </ul>
+  </div>
+
+  <h2>Cómo entregar</h2>
+  <ol>
+    <li>El archivo generado está en <strong>docs/Documentacion_RAG.doc</strong>. Ábrelo con Microsoft Word u otra aplicación compatible.</li>
+    <li>Puedes ajustar texto o añadir capturas si lo deseas antes de entregar.</li>
+    <li>Si necesitas el archivo en formato <code>.docx</code> real, puedo generarlo (requiere ejecutar una conversión por Pandoc o usar una librería). ¿Quieres que lo convierta a <code>.docx</code>?</li>
+  </ol>
+
+  <hr />
+  <p>Documento generado automáticamente por el asistente. Fecha de generación: 1 de marzo de 2026.</p>
+</body>
+</html>
