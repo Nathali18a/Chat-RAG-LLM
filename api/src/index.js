@@ -9,9 +9,6 @@ import { extractTextFromFile, getDocumentMetadata } from "./documentExtractor.js
 import { lightRAGSearch } from "./lightrag.js";
 import { generateStreamingMarkdownResponse, setupStreamingResponse } from "./streaming.js";
 import multer from "multer";
-app.use(cors({
-  origin: "https://fantastic-orbit-...5173.app.github.dev"
-}));
 
 dotenv.config();
 const sessionStates = new Map(); // Para mantener estado específico de cada sesión (documentos activos, últimos textos, etc.)
@@ -99,7 +96,9 @@ function getConversationalResponse(message) {
 }
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: "*"
+}));
 app.use(express.json({ limit: "2mb" }));
 
 const PORT = process.env.PORT || 3000;
